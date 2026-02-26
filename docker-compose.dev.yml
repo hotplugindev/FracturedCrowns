@@ -1,0 +1,59 @@
+# ============================================================
+# Fractured Crowns — Docker Compose (Development)
+# Hot-reload enabled for both frontend and backend
+# ============================================================
+
+services:
+  # ---- Backend (Node.js + TypeScript) ----
+  backend:
+    build:
+      context: ./backend
+      target: development
+    container_name: fc-backend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./backend/package.json:/app/package.json:ro
+      - ./backend/tsconfig.json:/app/tsconfig.json:ro
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://0.0.0.0:3000/api/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---- Frontend (Vue 3 + Vite Dev Server) ----
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    container_name: fc-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/index.html:/app/index.html:ro
+      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
+      - ./frontend/tsconfig.json:/app/tsconfig.json:ro
+      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json:ro
+      - ./frontend/public:/app/public:ro
+    environment:
+      - VITE_BACKEND_URL=http://localhost:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
