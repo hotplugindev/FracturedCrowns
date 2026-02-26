@@ -25,6 +25,8 @@ services:
         reservations:
           memory: 128M
           cpus: "0.25"
+    networks:
+      - internal
     healthcheck:
       test:
         [
@@ -51,11 +53,20 @@ services:
       context: ./frontend
       target: production
     container_name: fc-frontend-prod
-    ports:
-      - "80:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fracturedcrowns.rule=Host(`fracturedcrowns.yourdomain.com`)"
+      - "traefik.http.routers.fracturedcrowns.entrypoints=websecure"
+      - "traefik.http.routers.fracturedcrowns.tls=true"
+      - "traefik.http.routers.fracturedcrowns.tls.certresolver=leresolver"
+      - "traefik.http.services.fracturedcrowns.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik"
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - internal
+      - traefik
     restart: always
     deploy:
       resources:
@@ -76,3 +87,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  traefik:
+    external: true
+  internal:
+    driver: bridge
